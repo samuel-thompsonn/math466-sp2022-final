@@ -1,0 +1,1 @@
+Uses PyTorch and [this tutorial](https://realpython.com/generative-adversarial-networks/) to implement a generator for the graph of y = sin(x).
