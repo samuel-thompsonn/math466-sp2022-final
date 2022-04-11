@@ -83,11 +83,17 @@ def _train_generator(
   optimizer_generator.step()
   return loss_generator
 
-def _generate_samples(generator):
-  latent_space_samples = torch.randn(100, 2)
-  return generator(latent_space_samples).detach()
+def save_gan(output_folder, generator, discriminator, epoch):
+  print("Saving generator and discriminator...")
+  if not os.path.isdir(output_folder):
+    os.mkdir(output_folder)
+  if not os.path.isdir(f"{output_folder}/epoch_{epoch}"):
+    os.mkdir(f"{output_folder}/epoch_{epoch}")
+  torch.save(generator.to(device=torch.device('cpu')).state_dict(), f"{output_folder}/epoch_{epoch}/generator.dat")
+  torch.save(discriminator.state_dict(), f"{output_folder}/epoch_{epoch}/discriminator.dat")
+  print("Generator and discriminator saved.")
 
-def run_gan(discriminator_path=None, generator_path=None, num_epochs=NUM_EPOCHS):
+def run_gan(discriminator_path=None, generator_path=None, num_epochs=NUM_EPOCHS, output_folder="data"):
 
   torch.manual_seed(SEED)
 
@@ -145,21 +151,20 @@ def run_gan(discriminator_path=None, generator_path=None, num_epochs=NUM_EPOCHS)
       )
     print(f"Epoch: {epoch} Loss Discriminator: {loss_discriminator}")
     print(f"Epoch: {epoch} Loss Generator: {loss_generator}")
-  print(f"{num_epochs} epochs of training complete. Saving generator and discriminator...")
-  if not os.path.isdir("data"):
-    os.mkdir("data")
-  torch.save(generator.to(device=torch.device('cpu')).state_dict(), "data/generator.dat")
-  torch.save(discriminator.state_dict(), "data/discriminator.dat")
-  print("Generator and discriminator saved. Exiting...")
+    save_gan(output_folder, generator, discriminator, epoch)
+  save_gan(output_folder, generator, discriminator, num_epochs)
+  print(f"{num_epochs} epochs of training complete. Exiting...")
 
 if __name__=="__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("num_epochs", type=int)
+  parser.add_argument("output_folder", help="Filepath of directory to output discriminator and generator dicts", default="data")
   parser.add_argument("-discriminator", help="Filepath of discriminator state dict", default=None)
   parser.add_argument("-generator", help="Filepath of generator state dict", default=None)
   args = parser.parse_args()
   run_gan(
     generator_path=args.generator,
     discriminator_path=args.discriminator,
-    num_epochs=args.num_epochs
+    num_epochs=args.num_epochs,
+    output_folder=args.output_folder
   )
