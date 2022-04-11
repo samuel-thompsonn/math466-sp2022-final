@@ -148,7 +148,7 @@ def run_gan(discriminator_path=None, generator_path=None, num_epochs=NUM_EPOCHS)
   print(f"{num_epochs} epochs of training complete. Saving generator and discriminator...")
   if not os.path.isdir("data"):
     os.mkdir("data")
-  torch.save(generator.state_dict(), "data/generator.dat")
+  torch.save(generator.to(device=torch.device('cpu')).state_dict(), "data/generator.dat")
   torch.save(discriminator.state_dict(), "data/discriminator.dat")
   print("Generator and discriminator saved. Exiting...")
 
