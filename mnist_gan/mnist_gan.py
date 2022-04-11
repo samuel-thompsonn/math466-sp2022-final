@@ -87,13 +87,11 @@ def _generate_samples(generator):
   latent_space_samples = torch.randn(100, 2)
   return generator(latent_space_samples).detach()
 
-def run_gan(num_epochs=NUM_EPOCHS):
-
-  generated_data_sets = []
+def run_gan(discriminator_path=None, generator_path=None, num_epochs=NUM_EPOCHS):
 
   torch.manual_seed(SEED)
+
   device = torch.device("cpu")
-  
   if torch.cuda.is_available():
     device = torch.device("cuda")
 
@@ -104,8 +102,15 @@ def run_gan(num_epochs=NUM_EPOCHS):
   training_set = _generate_training_data(transform)
   batch_loader = _get_batch_loader(BATCH_SIZE, training_set)
 
-  discriminator = MnistDiscriminator().to(device)
-  generator = MnistGenerator().to(device)
+  discriminator = MnistDiscriminator()
+  if discriminator_path is not None:
+    discriminator.load_state_dict(torch.load(discriminator_path))
+  discriminator = discriminator.to(device)
+
+  generator = MnistGenerator()
+  if generator_path is not None:
+    generator.load_state_dict(torch.load(generator_path))
+  generator = generator.to(device)
 
   optimizier_discriminator = torch.optim.Adam(discriminator.parameters(), lr=LEARNING_RATE)
   optimizer_generator = torch.optim.Adam(generator.parameters(), lr=LEARNING_RATE)
@@ -153,4 +158,8 @@ if __name__=="__main__":
   parser.add_argument("-discriminator", help="Filepath of discriminator state dict", default=None)
   parser.add_argument("-generator", help="Filepath of generator state dict", default=None)
   args = parser.parse_args()
-  run_gan()
+  run_gan(
+    generator_path=args.generator,
+    discriminator_path=args.discriminator,
+    num_epochs=args.num_epochs
+  )
