@@ -5,6 +5,8 @@ import math
 import matplotlib.pyplot as plt
 import torchvision
 import torchvision.transforms as transforms
+import argparse
+import os
 
 SEED = 111
 TRAINING_DATA_LENGTH = 1024
@@ -85,7 +87,7 @@ def _generate_samples(generator):
   latent_space_samples = torch.randn(100, 2)
   return generator(latent_space_samples).detach()
 
-def run_gan():
+def run_gan(num_epochs=NUM_EPOCHS):
 
   generated_data_sets = []
 
@@ -93,7 +95,7 @@ def run_gan():
   device = torch.device("cpu")
   
   if torch.cuda.is_available():
-    device = torch.device("cuda"),
+    device = torch.device("cuda")
 
   transform = transforms.Compose([
     transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))
@@ -102,21 +104,15 @@ def run_gan():
   training_set = _generate_training_data(transform)
   batch_loader = _get_batch_loader(BATCH_SIZE, training_set)
 
-  real_samples, mnist_labels = next(iter(batch_loader))
-  for i in range(16):
-    ax = plt.subplot(4, 4, i + 1)
-    plt.imshow(real_samples[i].reshape(28, 28), cmap="gray_r")
-    plt.xticks([])
-    plt.yticks([])
-  plt.show()
-
   discriminator = MnistDiscriminator().to(device)
   generator = MnistGenerator().to(device)
 
   optimizier_discriminator = torch.optim.Adam(discriminator.parameters(), lr=LEARNING_RATE)
   optimizer_generator = torch.optim.Adam(generator.parameters(), lr=LEARNING_RATE)
 
-  for epoch in range(NUM_EPOCHS):
+  for epoch in range(num_epochs):
+    loss_discriminator = None
+    loss_generator = None
     for n, (real_samples, mnist_labels) in enumerate(batch_loader):
       real_samples_labels = torch.ones((BATCH_SIZE, 1)).to(device=device)
       all_samples, all_sample_labels = _generate_discriminator_training_data(
@@ -142,21 +138,19 @@ def run_gan():
         real_samples_labels,
         optimizer_generator
       )
-
-      if n == BATCH_SIZE - 1:
-          print(f"Epoch: {epoch} Loss Discriminator: {loss_discriminator}")
-          print(f"Epoch: {epoch} Loss Generator: {loss_generator}")
-  
-  latent_space_samples = torch.randn(BATCH_SIZE, 100).to(device=device)
-  generated_samples = generator(latent_space_samples).cpu().detach()
-  for i in range(16):
-    ax = plt.subplot(4, 4, i + 1)
-    plt.imshow(generated_samples[i].reshape(28, 28), cmap="gray_r")
-    plt.xticks([])
-    plt.yticks([])
-  # for generated_samples in generated_data_sets:
-  #   plt.plot(generated_samples[:, 0], generated_samples[:, 1], ".")
-  # plt.show()
+    print(f"Epoch: {epoch} Loss Discriminator: {loss_discriminator}")
+    print(f"Epoch: {epoch} Loss Generator: {loss_generator}")
+  print(f"{num_epochs} epochs of training complete. Saving generator and discriminator...")
+  if not os.path.isdir("data"):
+    os.mkdir("data")
+  torch.save(generator.state_dict(), "data/generator.dat")
+  torch.save(discriminator.state_dict(), "data/discriminator.dat")
+  print("Generator and discriminator saved. Exiting...")
 
 if __name__=="__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument("num_epochs", type=int)
+  parser.add_argument("-discriminator", help="Filepath of discriminator state dict", default=None)
+  parser.add_argument("-generator", help="Filepath of generator state dict", default=None)
+  args = parser.parse_args()
   run_gan()
