@@ -1,8 +1,11 @@
+import string
 import torch
 from Discriminator import Discriminator
 from Generator import Generator
 import math
 import matplotlib.pyplot as plt
+import argparse
+import os
 
 SEED = 111
 TRAINING_DATA_LENGTH = 1024
@@ -85,7 +88,7 @@ def _generate_samples(generator):
   latent_space_samples = torch.randn(100, 2)
   return generator(latent_space_samples).detach()
 
-def run_gan():
+def run_gan(discriminator_path=None, generator_path=None, num_epochs=NUM_EPOCHS):
 
   generated_data_sets = []
 
@@ -93,11 +96,15 @@ def run_gan():
   training_set = _generate_training_data(TRAINING_DATA_LENGTH)
   batch_loader = _get_batch_loader(BATCH_SIZE, training_set)
   discriminator = Discriminator()
+  if discriminator_path is not None:
+    discriminator.load_state_dict(torch.load(discriminator_path))
   optimizier_discriminator = torch.optim.Adam(discriminator.parameters())
   generator = Generator()
+  if generator_path is not None:
+    generator.load_state_dict(torch.load(generator_path))
   optimizer_generator = torch.optim.Adam(generator.parameters())
 
-  for epoch in range(NUM_EPOCHS):
+  for epoch in range(num_epochs):
     for n, (real_samples, _) in enumerate(batch_loader):
       real_samples_labels = torch.ones((BATCH_SIZE, 1))
       all_samples, all_sample_labels = _generate_discriminator_training_data(
@@ -126,11 +133,18 @@ def run_gan():
       if epoch % 10 == 0 and n == BATCH_SIZE - 1:
           print(f"Epoch: {epoch} Loss Discriminator: {loss_discriminator}")
           print(f"Epoch: {epoch} Loss Generator: {loss_generator}")
-          generated_data_sets.append(_generate_samples(generator))
-
-  for generated_samples in generated_data_sets:
-    plt.plot(generated_samples[:, 0], generated_samples[:, 1], ".")
-  plt.show()
+  
+  print(f"{num_epochs} epochs of training complete. Saving generator and discriminator...")
+  if not os.path.isdir("data"):
+    os.mkdir("data")
+  torch.save(generator.state_dict(), "data/generator.dat")
+  torch.save(discriminator.state_dict(), "data/discriminator.dat")
+  print("Generator and discriminator saved. Exiting...")
 
 if __name__=="__main__":
-  run_gan()
+  parser = argparse.ArgumentParser()
+  parser.add_argument("num_epochs", type=int)
+  parser.add_argument("-discriminator", help="Filepath of discriminator state dict", default=None)
+  parser.add_argument("-generator", help="Filepath of generator state dict", default=None)
+  args = parser.parse_args()
+  run_gan(args.discriminator, args.generator, num_epochs=args.num_epochs)
