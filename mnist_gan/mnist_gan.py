@@ -110,8 +110,8 @@ def run_gan():
     plt.yticks([])
   plt.show()
 
-  discriminator = MnistDiscriminator().to(device=device)
-  generator = MnistGenerator().to(device=device)
+  discriminator = MnistDiscriminator().to(device)
+  generator = MnistGenerator().to(device)
 
   optimizier_discriminator = torch.optim.Adam(discriminator.parameters(), lr=LEARNING_RATE)
   optimizer_generator = torch.optim.Adam(generator.parameters(), lr=LEARNING_RATE)
