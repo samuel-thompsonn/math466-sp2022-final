@@ -51,6 +51,8 @@ def save_gan(output_folder, generator, discriminator, epoch):
   torch.save(generator.to(device=torch.device('cpu')).state_dict(), f"{output_folder}/epoch_{epoch}/generator.dat")
   torch.save(discriminator.state_dict(), f"{output_folder}/epoch_{epoch}/discriminator.dat")
   print("Generator and discriminator saved.")
+  if torch.cuda.is_available():
+    generator.to(device=torch.device('cuda'))
 
 def train_gan(num_epochs, batch_size, start_epoch=0): 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -102,6 +104,7 @@ if __name__=="__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("num_epochs", type=int)
   parser.add_argument("-batch_size", type=int, default=BATCH_SIZE)
+  parser.add_argument("-start_epoch", type=int, default=0)
   args = parser.parse_args()
 
-  train_gan(args.num_epochs, args.batch_size)
+  train_gan(args.num_epochs, args.batch_size, start_epoch=args.start_epoch)
