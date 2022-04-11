@@ -54,12 +54,17 @@ def save_gan(output_folder, generator, discriminator, epoch):
   if torch.cuda.is_available():
     generator.to(device=torch.device('cuda'))
 
-def train_gan(num_epochs, batch_size, start_epoch=0): 
+def train_gan(num_epochs, batch_size, start_epoch=0, generator_path=None, discriminator_path=None): 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   training_data = _get_training_data()
   batch_loader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
-  generator = Generator(LATENT_VECTOR_SIZE, device).to(device)
+  generator = Generator(LATENT_VECTOR_SIZE, device)
+  if generator_path is not None:
+    generator.load_state_dict(torch.load(generator_path))
+  generator = generator.to(device)
   discriminator = Discriminator(device).to(device)
+  if discriminator_path is not None:
+    discriminator.load_state_dict(torch.load(discriminator_path))
 
   optimizer_generator = optim.Adam(generator.parameters(), LEARNING_RATE)
   optimizer_discriminator = optim.Adam(discriminator.parameters(), LEARNING_RATE)
@@ -103,8 +108,13 @@ def train_gan(num_epochs, batch_size, start_epoch=0):
 if __name__=="__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("num_epochs", type=int)
+  parser.add_argument("-generator_path")
+  parser.add_argument("-discriminator_path")
   parser.add_argument("-batch_size", type=int, default=BATCH_SIZE)
   parser.add_argument("-start_epoch", type=int, default=0)
   args = parser.parse_args()
 
-  train_gan(args.num_epochs, args.batch_size, start_epoch=args.start_epoch)
+  train_gan(args.num_epochs, args.batch_size, start_epoch=args.start_epoch,
+    discriminator_path=args.discriminator_path,
+    generator_path=args.generator_path
+  )
